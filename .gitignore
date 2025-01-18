@@ -9,6 +9,9 @@
 !tests/**
 !docs/
 !docs/**
+!subber_logs/
+!subber_logs/.gitkeep
+!docs/.gitkeep
 
 # Allow specific files
 !README.md
@@ -78,7 +81,7 @@ dmypy.json
 .ipynb_checkpoints
 
 # Local development
-*.log
+subber_logs/*.log
 .env.local
 .python-version
 

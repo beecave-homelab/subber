@@ -5,12 +5,16 @@
 # Allow specific directories and their contents
 !subber/
 !subber/**
+!tests/
+!tests/**
+!docs/
+!docs/**
 
 # Allow specific files
 !README.md
 !requirements.txt
 !setup.py
-!find-matching-subs.py
+!pyproject.toml
 !LICENSE
 !.gitignore
 
@@ -40,13 +44,41 @@ wheels/
 venv/
 env/
 ENV/
+.env
+.venv/
 
 # IDE specific files
 .idea/
 .vscode/
 *.swp
 *.swo
+.vim/
 
 # OS specific files
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Test coverage and reports
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Documentation builds
+docs/_build/
+site/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Local development
+*.log
+.env.local
+.python-version
+

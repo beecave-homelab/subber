@@ -14,7 +14,7 @@ A command-line tool for matching video files with their corresponding subtitle f
 ## Badges
 
 ![Python](https://img.shields.io/badge/Python-3.6%2B-blue)
-![Version](https://img.shields.io/badge/version-0.1.0-green)
+![Version](https://img.shields.io/badge/version-0.2.0-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## Features

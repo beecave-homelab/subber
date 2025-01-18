@@ -197,59 +197,59 @@ def find_matches(
     subtitles_left = set(subtitle_files)
 
     # 1. Exact matches
-    for vf in video_files:
+    for video_file in video_files:
         try:
-            vf_stem = vf.stem.lower()
-            exact_sub = next((sf for sf in subtitle_files
-                            if sf.stem.lower() == vf_stem), None)
-            if exact_sub:
-                exact_matches.append((vf, exact_sub))
-                subtitles_left.discard(exact_sub)
-                logger.debug("Found exact match: %s -> %s", vf, exact_sub)
+            video_stem = video_file.stem.lower()
+            exact_subtitle = next((subtitle_file for subtitle_file in subtitle_files
+                            if subtitle_file.stem.lower() == video_stem), None)
+            if exact_subtitle:
+                exact_matches.append((video_file, exact_subtitle))
+                subtitles_left.discard(exact_subtitle)
+                logger.debug("Found exact match: `%s` -> `%s`", str(video_file), str(exact_subtitle))
             else:
-                unmatched_videos.append(vf)
+                unmatched_videos.append(video_file)
         except Exception as e:
-            logger.warning("Error processing video file %s: %s", vf, e)
+            logger.warning("Error processing video file `%s`: %s", str(video_file), e)
             continue
 
     # 2. Close matches
     try:
         unmatched_subtitles = list(subtitles_left)
-        unmatched_subtitle_sets = {sf: normalize_filename(sf) for sf in unmatched_subtitles}
-        unmatched_video_sets = {vf: normalize_filename(vf) for vf in unmatched_videos}
+        unmatched_subtitle_sets = {subtitle_file: normalize_filename(subtitle_file) for subtitle_file in unmatched_subtitles}
+        unmatched_video_sets = {video_file: normalize_filename(video_file) for video_file in unmatched_videos}
 
         remaining_videos = []
-        for vf, v_set in unmatched_video_sets.items():
+        for video_file, video_set in unmatched_video_sets.items():
             best_match = None
             best_similarity = 0.0
             
             # Extract date from video filename
-            video_date = extract_date(vf.stem)
+            video_date = extract_date(video_file.stem)
             
-            for sf, s_set in unmatched_subtitle_sets.items():
+            for subtitle_file, subtitle_set in unmatched_subtitle_sets.items():
                 # Calculate base similarity using Jaccard index
-                intersection = v_set.intersection(s_set)
-                union = v_set.union(s_set)
+                intersection = video_set.intersection(subtitle_set)
+                union = video_set.union(subtitle_set)
                 similarity = len(intersection) / len(union) if union else 0.0
                 
                 # Check for matching dates and boost similarity
                 if video_date:
-                    sub_date = extract_date(sf.stem)
-                    if sub_date and video_date == sub_date:
+                    subtitle_date = extract_date(subtitle_file.stem)
+                    if subtitle_date and video_date == subtitle_date:
                         similarity = min(1.0, similarity + DATE_SIMILARITY_BOOST)
                 
                 if similarity > best_similarity:
                     best_similarity = similarity
-                    best_match = sf
+                    best_match = subtitle_file
                     
             if best_match and best_similarity >= min_similarity:
-                close_matches.append((vf, best_match, best_similarity))
+                close_matches.append((video_file, best_match, best_similarity))
                 subtitles_left.discard(best_match)
                 del unmatched_subtitle_sets[best_match]
-                logger.debug("Found close match: %s -> %s (similarity: %f)",
-                           vf, best_match, best_similarity)
+                logger.debug("Found close match: `%s` -> `%s` (similarity: %f)",
+                           str(video_file), str(best_match), best_similarity)
             else:
-                remaining_videos.append(vf)
+                remaining_videos.append(video_file)
     except Exception as e:
         logger.error("Error during close matching: %s", e)
         remaining_videos = unmatched_videos

@@ -49,22 +49,22 @@ def display_results(
     unmatched_section = []
 
     if exact_matches:
-        for vf, sf in exact_matches:
-            exact_section.append((fmt_path(vf), fmt_path(sf)))
+        for video_file, subtitle_file in exact_matches:
+            exact_section.append((fmt_path(video_file), fmt_path(subtitle_file)))
     if close_matches:
-        for vf, sf, sim in close_matches:
-            close_section.append((fmt_path(vf), fmt_path(sf), f"{sim:.2f}"))
+        for video_file, subtitle_file, sim in close_matches:
+            close_section.append((fmt_path(video_file), fmt_path(subtitle_file), f"{sim:.2f}"))
     if unmatched_videos:
-        for vf in unmatched_videos:
-            unmatched_section.append((fmt_path(vf),))
+        for video_file in unmatched_videos:
+            unmatched_section.append((fmt_path(video_file),))
 
     # If no_table, print plain text
     if no_table:
         # Exact matches section
         exact_content = Text()
         if exact_section:
-            for vf, sf in exact_section:
-                exact_content.append(f"{vf} --> {sf}\n")
+            for video_file, subtitle_file in exact_section:
+                exact_content.append(f"{video_file} --> {subtitle_file}\n")
         else:
             exact_content.append("No exact matches found.\n")
         console.print(Panel(exact_content, title="Exact Matches", border_style="green", title_align="left"))
@@ -72,8 +72,8 @@ def display_results(
         # Close matches section
         close_content = Text()
         if close_section:
-            for vf, sf, sim in close_section:
-                close_content.append(f"{vf} --> {sf} (Similarity: {sim})\n")
+            for video_file, subtitle_file, sim in close_section:
+                close_content.append(f"{video_file} --> {subtitle_file} (Similarity: {sim})\n")
         else:
             close_content.append("No close matches found.\n")
         console.print(Panel(close_content, title="Close Matches", border_style="yellow", title_align="left"))
@@ -81,8 +81,8 @@ def display_results(
         # Unmatched files section
         unmatched_content = Text()
         if unmatched_section:
-            for (vf,) in unmatched_section:
-                unmatched_content.append(f"{vf}\n")
+            for (video_file,) in unmatched_section:
+                unmatched_content.append(f"{video_file}\n")
         else:
             unmatched_content.append("All video files have matching subtitles.\n")
         console.print(Panel(unmatched_content, title="Unmatched Video Files", border_style="red", title_align="left"))
@@ -92,8 +92,8 @@ def display_results(
             table = Table(title="Exact Matches", border_style="green", header_style="bold green")
             table.add_column("Video File")
             table.add_column("Subtitle File")
-            for vf, sf in exact_section:
-                table.add_row(vf, sf)
+            for video_file, subtitle_file in exact_section:
+                table.add_row(video_file, subtitle_file)
             console.print(table)
         else:
             console.print(Panel("No exact matches found.", title="Exact Matches", border_style="green", title_align="left"))
@@ -103,8 +103,8 @@ def display_results(
             table.add_column("Video File")
             table.add_column("Subtitle File")
             table.add_column("Similarity")
-            for vf, sf, sim in close_section:
-                table.add_row(vf, sf, sim)
+            for video_file, subtitle_file, sim in close_section:
+                table.add_row(video_file, subtitle_file, sim)
             console.print(table)
         else:
             console.print(Panel("No close matches found.", title="Close Matches", border_style="yellow", title_align="left"))
@@ -112,8 +112,8 @@ def display_results(
         if unmatched_section:
             table = Table(title="Unmatched Video Files", border_style="red", header_style="bold red")
             table.add_column("Video File")
-            for (vf,) in unmatched_section:
-                table.add_row(vf)
+            for (video_file,) in unmatched_section:
+                table.add_row(video_file)
             console.print(table)
         else:
             console.print(Panel("All video files have matching subtitles.", title="Unmatched Video Files", border_style="red", title_align="left"))
@@ -123,22 +123,22 @@ def display_results(
         all_text = []
         all_text.append("Exact Matches:")
         if exact_section:
-            for vf, sf in exact_section:
-                all_text.append(f"{vf} --> {sf}")
+            for video_file, subtitle_file in exact_section:
+                all_text.append(f"{video_file} --> {subtitle_file}")
         else:
             all_text.append("No exact matches found.")
 
         all_text.append("\nClose Matches:")
         if close_section:
-            for vf, sf, sim in close_section:
-                all_text.append(f"{vf} --> {sf} (Similarity: {sim})")
+            for video_file, subtitle_file, sim in close_section:
+                all_text.append(f"{video_file} --> {subtitle_file} (Similarity: {sim})")
         else:
             all_text.append("No close matches found.")
 
         all_text.append("\nUnmatched Video Files:")
         if unmatched_section:
-            for (vf,) in unmatched_section:
-                all_text.append(vf)
+            for (video_file,) in unmatched_section:
+                all_text.append(video_file)
         else:
             all_text.append("All video files have matching subtitles.")
 

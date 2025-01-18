@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "subber"
+version = "0.1.0"
+description = "A tool for matching video files with subtitle files"
+readme = "README.md"
+authors = [
+    {name = "elvee"}
+]
+license = {file = "LICENSE"}
+requires-python = ">=3.7"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "click>=8.0.0",
+    "rich>=13.0.0",
+    "questionary>=2.0.0",
+    "rapidfuzz>=3.0.0",
+    "tabulate>=0.9.0",
+    "better-ffmpeg-progress>=1.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/elvee/subber"
+Repository = "https://github.com/elvee/subber"
+
+[project.scripts]
+subber = "subber.cli.main:main"
+
+[tool.setuptools]
+packages = ["subber"]
+
+[tool.black]
+line-length = 88
+target-version = ["py37"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.7"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+] 

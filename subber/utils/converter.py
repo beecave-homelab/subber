@@ -81,17 +81,27 @@ def convert_to_mp3(video_file: Path, output_dir: Path) -> bool:
                 return True
             else:
                 logger.error(f"FFmpeg process failed with return code {return_code}")
+                # Clean up incomplete file on failure
+                if output_path.exists():
+                    output_path.unlink()
+                    logger.debug(f"Cleaned up incomplete file: {output_path}")
                 return False
             
         except KeyboardInterrupt:
             logger.debug("Conversion interrupted by user")
             ff.terminate()
+            # Clean up incomplete file on interruption
             if output_path.exists():
                 output_path.unlink()
+                logger.debug(f"Cleaned up incomplete file: {output_path}")
             return False
     
     except Exception as e:
         logger.error(f"Failed to convert {video_file.name}", extra={'error': str(e)})
+        # Clean up incomplete file on error
+        if output_path.exists():
+            output_path.unlink()
+            logger.debug(f"Cleaned up incomplete file: {output_path}")
         return False
 
 def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
@@ -158,14 +168,19 @@ def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
             return 0
             
         # Handle "Select All" option
+        files_to_convert = []
         if "ALL" in selected:
-            selected = [choice["value"] for choice in file_choices]
+            files_to_convert = [choice["value"] for choice in file_choices]
             logger.debug("Selected all files for conversion", 
-                        extra={'file_count': len(selected)})
+                        extra={'file_count': len(files_to_convert)})
+        else:
+            files_to_convert = selected
+            logger.debug("Selected specific files for conversion", 
+                        extra={'file_count': len(files_to_convert)})
             
         # Convert files one by one
         converted_count = 0
-        total_files = len(selected)
+        total_files = len(files_to_convert)
         
         # Create header panel
         console.print(Panel(
@@ -175,7 +190,7 @@ def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
             title_align="left"
         ))
         
-        for i, video_file in enumerate(selected, 1):
+        for i, video_file in enumerate(files_to_convert, 1):
             # Create file header with counter
             header = Text()
             header.append(f"[{i}/{total_files}] ", style="bold blue")
@@ -183,24 +198,48 @@ def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
             header.append(video_file.name, style="cyan")
             console.print(f"\n{header}")
             
-            if convert_to_mp3(video_file, output_dir):
-                converted_count += 1
-                # Success message
-                msg = Text("✓ ", style="bold green")
-                msg.append("Converted ", style="green")
-                msg.append(video_file.name, style="cyan")
-                console.print(msg)
-            else:
-                # Error message
-                msg = Text("✗ ", style="bold red")
-                msg.append("Failed to convert ", style="red")
-                msg.append(video_file.name, style="cyan")
-                console.print(msg)
+            try:
+                if convert_to_mp3(video_file, output_dir):
+                    converted_count += 1
+                    # Success message
+                    msg = Text("✓ ", style="bold green")
+                    msg.append("Converted ", style="green")
+                    msg.append(video_file.name, style="cyan")
+                    console.print(msg)
+                else:
+                    # Error message
+                    msg = Text("✗ ", style="bold red")
+                    msg.append("Failed to convert ", style="red")
+                    msg.append(video_file.name, style="cyan")
+                    console.print(msg)
+                    # Continue with next file on error
+                    continue
+                    
+            except KeyboardInterrupt:
+                # Clean up the current file
+                output_path = output_dir / f"{video_file.stem}.mp3"
+                if output_path.exists():
+                    output_path.unlink()
+                    logger.debug(f"Cleaned up incomplete file: {output_path}")
+                
+                # Show cancellation message
+                console.print(Panel(
+                    Text.assemble(
+                        ("Operation cancelled by user\n", "yellow"),
+                        ("Converted ", "bold"),
+                        (f"{converted_count}/{total_files}", "bold yellow"),
+                        " files before cancellation"
+                    ),
+                    border_style="yellow",
+                    title="Cancelled",
+                    title_align="left"
+                ))
+                return converted_count
         
+        # Print summary panel only if all files were processed
         logger.debug("Conversion complete", 
                     extra={'converted_count': converted_count, 'total_files': total_files})
         
-        # Print summary panel
         status_style = "green" if converted_count == total_files else "yellow"
         console.print(Panel(
             Text.assemble(
@@ -215,7 +254,8 @@ def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
         return converted_count
             
     except (KeyboardInterrupt, EOFError):
-        logger.debug("Conversion cancelled by user")
+        # This catches interrupts during file selection
+        logger.debug("Operation cancelled during file selection")
         console.print(Panel(
             "Operation cancelled by user",
             border_style="yellow",

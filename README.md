@@ -29,14 +29,21 @@ A command-line tool for matching video files with their corresponding subtitle f
 
 ## Installation
 
+### Option 1: Using pipx (Recommended)
+
 ```bash
-pip install subber
+pipx install "https://github.com/beecave-homelab/subber.git"
 ```
 
-Or install from source:
+### Option 2: Using virtualenv (For development)
 
 ```bash
-git clone https://github.com/elvee/subber.git
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+
+# Clone and install
+git clone https://github.com/beecave-homelab/subber.git
 cd subber
 pip install -r requirements.txt
 ```

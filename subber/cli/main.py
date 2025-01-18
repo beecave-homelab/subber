@@ -14,6 +14,8 @@ from subber.core.matcher import collect_files, find_matches
 from subber.utils.display import show_ascii_art, display_results
 from subber.utils.file_ops import rename_close_matches, move_unmatched_files
 from subber.utils.converter import batch_convert_to_mp3, check_ffmpeg_installed
+from subber.utils.logging import setup_logging
+from subber.core.constants import LOGS_DIR
 
 # Initialize Rich console
 console = Console()
@@ -66,7 +68,8 @@ class RichFileFormatter(logging.Formatter):
 @click.option("-r", "--rename", is_flag=True, help="Interactively rename close-matched subtitle files to match video names")
 @click.option("-c", "--convert", is_flag=False, flag_value="audio_files", default=None, help="Convert selected video files to MP3 format. Optionally specify output subdirectory (default: 'audio_files')")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose output with debug information")
-def main(directory, output_file, no_table, path, move_unmatched, rename, convert, verbose):
+@click.option("--log-file", type=click.Path(), help="Specify a custom log file path (default: timestamped file in subber_logs/)")
+def main(directory, output_file, no_table, path, move_unmatched, rename, convert, verbose, log_file):
     """
     Find and match video files with their corresponding subtitle files.
     
@@ -74,29 +77,27 @@ def main(directory, output_file, no_table, path, move_unmatched, rename, convert
     and subtitle files (.srt), matches them based on filename similarity, and
     provides options for renaming and organizing the files.
     """
-    # Configure logging based on verbose flag
-    log_level = logging.DEBUG if verbose else logging.WARNING
+    # Configure logging
+    log_level = "DEBUG" if verbose else "WARNING"
+    log_file_path = Path(log_file) if log_file else None
+    setup_logging(log_level=log_level, log_file=log_file_path)
     
-    # Configure root logger with Rich handler and custom formatter
-    handler = RichHandler(
+    # Configure Rich handler
+    rich_handler = RichHandler(
         rich_tracebacks=True,
         markup=True,
         show_time=True,
         show_level=True,
         show_path=False,
-        level=log_level,
+        level=logging.DEBUG if verbose else logging.WARNING,
         console=console,
         tracebacks_extra_lines=2,
         tracebacks_theme="monokai",
     )
-    handler.setFormatter(RichFileFormatter("%(message)s"))
+    rich_handler.setFormatter(RichFileFormatter("%(message)s"))
     
-    logging.basicConfig(
-        level=log_level,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[handler]
-    )
+    # Add Rich handler to root logger
+    logging.getLogger().addHandler(rich_handler)
     
     # Silence other loggers unless in verbose mode
     if not verbose:
@@ -106,9 +107,14 @@ def main(directory, output_file, no_table, path, move_unmatched, rename, convert
 
     show_ascii_art()
 
+    # Log the start of execution
+    logger = logging.getLogger(__name__)
+    logger.info("Starting subber with directory: %s", directory)
+    logger.debug("Log file location: %s", LOGS_DIR)
+
     dir_path = Path(directory).resolve()
     if not dir_path.exists():
-        print(click.style(f"Directory {dir_path} does not exist!", fg="red"))
+        console.print(f"[red]Directory {dir_path} does not exist![/red]")
         return
 
     # 1. Collect files

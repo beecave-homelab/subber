@@ -9,7 +9,9 @@ from typing import List, Optional, Dict, Any
 import questionary
 from rich.console import Console
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.panel import Panel
+from rich.text import Text
+from better_ffmpeg_progress import FfmpegProcess
 
 from ..core.constants import CONSOLE_STYLES
 
@@ -48,36 +50,48 @@ def convert_to_mp3(video_file: Path, output_dir: Path) -> bool:
         output_path = output_dir / f"{video_file.stem}.mp3"
         
         if output_path.exists():
-            logger.debug("Output file already exists, skipping conversion", 
-                        extra={'output_file': str(output_path)})
+            logger.debug(f"Skipping {video_file.name} (already exists)")
             return False
 
-        logger.debug("Converting video to MP3", 
-                    extra={'input_file': str(video_file), 'output_file': str(output_path)})
+        logger.debug(f"Starting conversion of {video_file.name}")
         
-        result = subprocess.run([
+        # Prepare ffmpeg command
+        cmd = [
             'ffmpeg',
             '-i', str(video_file),
             '-q:a', '0',  # Use variable bit rate with highest quality
             '-map', 'a',  # Extract only audio
             '-y',  # Overwrite output file if it exists
             str(output_path)
-        ], check=True, capture_output=True, text=True)
+        ]
         
-        # Log ffmpeg output only in debug mode
-        if result.stderr:
-            logger.debug("ffmpeg output", extra={'ffmpeg_output': result.stderr})
+        # Create FfmpegProcess instance with logging configuration
+        ff = FfmpegProcess(
+            cmd,
+            ffmpeg_log_level="error",  # Only show errors in ffmpeg output
+            print_stderr_new_line=True  # Print errors on new lines
+        )
         
-        logger.debug("Successfully converted video to MP3",
-                    extra={'input_file': str(video_file), 'output_file': str(output_path)})
-        return True
+        try:
+            # Start the process and let better-ffmpeg-progress handle the display
+            return_code = ff.run()
+            
+            if return_code == 0:
+                logger.debug(f"Successfully converted {video_file.name}")
+                return True
+            else:
+                logger.error(f"FFmpeg process failed with return code {return_code}")
+                return False
+            
+        except KeyboardInterrupt:
+            logger.debug("Conversion interrupted by user")
+            ff.terminate()
+            if output_path.exists():
+                output_path.unlink()
+            return False
     
-    except subprocess.SubprocessError as e:
-        logger.error("Error converting video to MP3",
-                    extra={'input_file': str(video_file), 'error': str(e)})
-        # Log detailed error output in debug mode
-        if hasattr(e, 'stderr') and e.stderr:
-            logger.debug("ffmpeg error output", extra={'ffmpeg_error': e.stderr})
+    except Exception as e:
+        logger.error(f"Failed to convert {video_file.name}", extra={'error': str(e)})
         return False
 
 def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
@@ -149,25 +163,63 @@ def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
             logger.debug("Selected all files for conversion", 
                         extra={'file_count': len(selected)})
             
-        # Convert files with progress bar
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console
-        ) as progress:
-            task = progress.add_task("[blue]Converting files...[/blue]", total=len(selected))
-            converted_count = 0
+        # Convert files one by one
+        converted_count = 0
+        total_files = len(selected)
+        
+        # Create header panel
+        console.print(Panel(
+            f"Converting {total_files} files",
+            border_style=CONSOLE_STYLES["info"],
+            title="Starting Conversion",
+            title_align="left"
+        ))
+        
+        for i, video_file in enumerate(selected, 1):
+            # Create file header with counter
+            header = Text()
+            header.append(f"[{i}/{total_files}] ", style="bold blue")
+            header.append("Converting ", style="bold")
+            header.append(video_file.name, style="cyan")
+            console.print(f"\n{header}")
             
-            for video_file in selected:
-                if convert_to_mp3(video_file, output_dir):
-                    converted_count += 1
-                progress.advance(task)
-            
-            logger.debug("Conversion complete", 
-                        extra={'converted_count': converted_count, 'total_files': len(selected)})
-            return converted_count
+            if convert_to_mp3(video_file, output_dir):
+                converted_count += 1
+                # Success message
+                msg = Text("✓ ", style="bold green")
+                msg.append("Converted ", style="green")
+                msg.append(video_file.name, style="cyan")
+                console.print(msg)
+            else:
+                # Error message
+                msg = Text("✗ ", style="bold red")
+                msg.append("Failed to convert ", style="red")
+                msg.append(video_file.name, style="cyan")
+                console.print(msg)
+        
+        logger.debug("Conversion complete", 
+                    extra={'converted_count': converted_count, 'total_files': total_files})
+        
+        # Print summary panel
+        status_style = "green" if converted_count == total_files else "yellow"
+        console.print(Panel(
+            Text.assemble(
+                ("Conversion complete: ", "bold"),
+                (f"{converted_count}/{total_files}", f"bold {status_style}"),
+                " files converted successfully"
+            ),
+            border_style=status_style,
+            title="Summary",
+            title_align="left"
+        ))
+        return converted_count
             
     except (KeyboardInterrupt, EOFError):
         logger.debug("Conversion cancelled by user")
-        console.print("\nOperation cancelled by user.", style="yellow")
+        console.print(Panel(
+            "Operation cancelled by user",
+            border_style="yellow",
+            title="Cancelled",
+            title_align="left"
+        ))
         return 0 

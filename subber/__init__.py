@@ -2,7 +2,7 @@
 Subber - A tool for matching video files with subtitle files.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "elvee"
 __description__ = "A tool for matching video files with subtitle files"
 

@@ -2,6 +2,7 @@
 Constants used throughout the subber package.
 """
 
+from pathlib import Path
 from typing import Set, Dict
 
 # File extensions
@@ -15,6 +16,7 @@ DATE_SIMILARITY_BOOST: float = 0.3
 # Logging configuration
 LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 LOG_DATE_FORMAT: str = "%Y-%m-%d %H:%M:%S"
+LOGS_DIR: Path = Path(__file__).parent.parent.parent / "subber_logs"
 
 # Rich console styling
 CONSOLE_STYLES: Dict[str, str] = {

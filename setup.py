@@ -6,7 +6,7 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="subber",
-    version="0.1.0",
+    version="0.2.0",
     author="elvee",
     description="A tool for matching video files with subtitle files",
     long_description=long_description,

@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.text import Text
 from better_ffmpeg_progress import FfmpegProcess
 
-from ..core.constants import CONSOLE_STYLES
+from ..core.constants import CONSOLE_STYLES, AUDIO_CONVERSION, MESSAGES
 
 # Initialize Rich console and logger
 console = Console()
@@ -59,8 +59,8 @@ def convert_to_mp3(video_file: Path, output_dir: Path) -> bool:
         cmd = [
             'ffmpeg',
             '-i', str(video_file),
-            '-q:a', '0',  # Use variable bit rate with highest quality
-            '-map', 'a',  # Extract only audio
+            '-q:a', AUDIO_CONVERSION['FFMPEG_SETTINGS']['quality'],
+            '-map', AUDIO_CONVERSION['FFMPEG_SETTINGS']['map'],
             '-y',  # Overwrite output file if it exists
             str(output_path)
         ]
@@ -68,7 +68,7 @@ def convert_to_mp3(video_file: Path, output_dir: Path) -> bool:
         # Create FfmpegProcess instance with logging configuration
         ff = FfmpegProcess(
             cmd,
-            ffmpeg_log_level="error",  # Only show errors in ffmpeg output
+            ffmpeg_log_level=AUDIO_CONVERSION['FFMPEG_SETTINGS']['log_level'],
             print_stderr_new_line=True  # Print errors on new lines
         )
         
@@ -104,13 +104,13 @@ def convert_to_mp3(video_file: Path, output_dir: Path) -> bool:
             logger.debug(f"Cleaned up incomplete file: {output_path}")
         return False
 
-def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
+def batch_convert_to_mp3(video_files: List[Path], output_dir: Optional[Path] = None) -> int:
     """
     Convert a batch of video files to MP3 format.
     
     Args:
         video_files: List of video files to convert
-        output_dir: Directory to save the converted files
+        output_dir: Directory to save the converted files. If None, uses default from constants.
         
     Returns:
         int: Number of successfully converted files
@@ -118,6 +118,10 @@ def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
     if not video_files:
         logger.debug("No files to convert")
         return 0
+    
+    # Use default output directory if none provided
+    if output_dir is None:
+        output_dir = Path(AUDIO_CONVERSION['DEFAULT_OUTPUT_DIR'])
         
     # Create output directory if it doesn't exist
     output_dir.mkdir(exist_ok=True)
@@ -225,7 +229,7 @@ def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
                 # Show cancellation message
                 console.print(Panel(
                     Text.assemble(
-                        ("Operation cancelled by user\n", "yellow"),
+                        (f"{MESSAGES['OPERATION_CANCELLED']}\n", "yellow"),
                         ("Converted ", "bold"),
                         (f"{converted_count}/{total_files}", "bold yellow"),
                         " files before cancellation"
@@ -251,13 +255,15 @@ def batch_convert_to_mp3(video_files: List[Path], output_dir: Path) -> int:
             title="Summary",
             title_align="left"
         ))
+        
         return converted_count
-            
-    except (KeyboardInterrupt, EOFError):
-        # This catches interrupts during file selection
-        logger.debug("Operation cancelled during file selection")
+        
+    except KeyboardInterrupt:
         console.print(Panel(
-            "Operation cancelled by user",
+            Text.assemble(
+                (f"{MESSAGES['OPERATION_CANCELLED']}\n", "yellow"),
+                ("No files were converted.", "dim")
+            ),
             border_style="yellow",
             title="Cancelled",
             title_align="left"

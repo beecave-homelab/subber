@@ -32,7 +32,7 @@ A command-line tool for matching video files with their corresponding subtitle f
 ### Option 1: Using pipx (Recommended)
 
 ```bash
-pipx install "https://github.com/beecave-homelab/subber.git"
+pipx install "git+https://github.com/beecave-homelab/subber.git"
 ```
 
 ### Option 2: Using virtualenv (For development)

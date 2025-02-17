@@ -15,44 +15,51 @@ Example:
 import logging
 import re
 from pathlib import Path
-from typing import List, Tuple, Set, Dict, Optional, cast
+from typing import Optional, cast
 from datetime import datetime
 
 from subber.core.constants import (
     VIDEO_EXTENSIONS,
     SUBTITLE_EXTENSIONS,
     DEFAULT_MIN_SIMILARITY,
-    DATE_SIMILARITY_BOOST
+    DATE_SIMILARITY_BOOST,
 )
 from subber.core.types import (
-    FilePath, VideoPath, SubtitlePath,
-    ExactMatch, CloseMatch, MatchResult,
-    NormalizedWords, FileMapping, FileCollection
+    FilePath,
+    VideoPath,
+    SubtitlePath,
+    ExactMatch,
+    CloseMatch,
+    MatchResult,
+    NormalizedWords,
+    FileMapping,
+    FileCollection,
 )
 
 logger = logging.getLogger(__name__)
 
+
 class MatcherError(Exception):
     """Base exception for matcher module."""
-    pass
+
 
 class InvalidPathError(MatcherError):
     """Raised when a path is invalid or inaccessible."""
-    pass
+
 
 def extract_date(filename: str) -> Optional[datetime]:
     """
     Extract a date from a filename using various common formats.
-    
+
     This function attempts to find and parse dates in filenames using multiple
     common formats including YYYY-MM-DD, DD-MM-YYYY, and their variations.
-    
+
     Args:
         filename: The filename to extract date from
-        
+
     Returns:
         Optional[datetime]: The extracted date or None if no date found
-        
+
     Examples:
         >>> extract_date("video_2024-01-24_test.mp4")
         datetime(2024, 1, 24)
@@ -62,83 +69,117 @@ def extract_date(filename: str) -> Optional[datetime]:
         None
     """
     # Common separator pattern that matches dots, hyphens, and spaces
-    sep = r'[\.\- ]+'
-    
+    sep = r"[\.\- ]+"
+
     # Pattern for YYYY-MM-DD format
-    pattern_ymd = rf'(?:^|\D)(?P<year_ymd>[0-9]{{4}}){sep}(?P<month_ymd>[0-9]{{2}}){sep}(?P<day_ymd>[0-9]{{2}})(?:\D|$)'
-    
+    pattern_ymd = (
+        rf"(?:^|\D)(?P<year_ymd>[0-9]{{4}}){sep}"
+        rf"(?P<month_ymd>[0-9]{{2}}){sep}"
+        rf"(?P<day_ymd>[0-9]{{2}})(?:\D|$)"
+    )
+
     # Pattern for DD-MM-YYYY format
-    pattern_dmy = rf'(?:^|\D)(?P<day_dmy>[0-9]{{2}}){sep}(?P<month_dmy>[0-9]{{2}}){sep}(?P<year_dmy>[0-9]{{4}})(?:\D|$)'
-    
+    pattern_dmy = (
+        rf"(?:^|\D)(?P<day_dmy>[0-9]{{2}}){sep}"
+        rf"(?P<month_dmy>[0-9]{{2}}){sep}"
+        rf"(?P<year_dmy>[0-9]{{4}})(?:\D|$)"
+    )
+
     # Pattern for YY-MM-DD format
-    pattern_short_ymd = rf'(?:^|\D)(?P<year_short_ymd>[0-9]{{2}}){sep}(?P<month_short_ymd>[0-9]{{2}}){sep}(?P<day_short_ymd>[0-9]{{2}})(?:\D|$)'
-    
+    pattern_short_ymd = (
+        rf"(?:^|\D)(?P<year_short_ymd>[0-9]{{2}}){sep}"
+        rf"(?P<month_short_ymd>[0-9]{{2}}){sep}"
+        rf"(?P<day_short_ymd>[0-9]{{2}})(?:\D|$)"
+    )
+
     # Pattern for DD-MM-YY format
-    pattern_short_dmy = rf'(?:^|\D)(?P<day_short_dmy>[0-9]{{2}}){sep}(?P<month_short_dmy>[0-9]{{2}}){sep}(?P<year_short_dmy>[0-9]{{2}})(?:\D|$)'
-    
+    pattern_short_dmy = (
+        rf"(?:^|\D)(?P<day_short_dmy>[0-9]{{2}}){sep}"
+        rf"(?P<month_short_dmy>[0-9]{{2}}){sep}"
+        rf"(?P<year_short_dmy>[0-9]{{2}})(?:\D|$)"
+    )
+
     # Compact formats without separators
-    pattern_compact_ymd = r'(?:^|\D)(?P<year_compact>[0-9]{4})(?P<month_compact>[0-9]{2})(?P<day_compact>[0-9]{2})(?:\D|$)'
-    pattern_compact_dmy = r'(?:^|\D)(?P<day_compact_dmy>[0-9]{2})(?P<month_compact_dmy>[0-9]{2})(?P<year_compact_dmy>[0-9]{4})(?:\D|$)'
-    pattern_compact_short_dmy = r'(?:^|\D)(?P<day_compact_short>[0-9]{2})(?P<month_compact_short>[0-9]{2})(?P<year_compact_short>[0-9]{2})(?:\D|$)'
-    
+    pattern_compact_ymd = (
+        r"(?:^|\D)(?P<year_compact>[0-9]{4})"
+        r"(?P<month_compact>[0-9]{2})"
+        r"(?P<day_compact>[0-9]{2})(?:\D|$)"
+    )
+    pattern_compact_dmy = (
+        r"(?:^|\D)(?P<day_compact_dmy>[0-9]{2})"
+        r"(?P<month_compact_dmy>[0-9]{2})"
+        r"(?P<year_compact_dmy>[0-9]{4})(?:\D|$)"
+    )
+    pattern_compact_short_dmy = (
+        r"(?:^|\D)(?P<day_compact_short>[0-9]{2})"
+        r"(?P<month_compact_short>[0-9]{2})"
+        r"(?P<year_compact_short>[0-9]{2})(?:\D|$)"
+    )
+
     # All patterns to try
     patterns = [
-        pattern_ymd,                    # YYYY-MM-DD
-        pattern_dmy,                    # DD-MM-YYYY
-        pattern_short_ymd,              # YY-MM-DD
-        pattern_short_dmy,              # DD-MM-YY
-        pattern_compact_ymd,            # YYYYMMDD
-        pattern_compact_dmy,            # DDMMYYYY
-        pattern_compact_short_dmy,      # DDMMYY
-        
+        pattern_ymd,  # YYYY-MM-DD
+        pattern_dmy,  # DD-MM-YYYY
+        pattern_short_ymd,  # YY-MM-DD
+        pattern_short_dmy,  # DD-MM-YY
+        pattern_compact_ymd,  # YYYYMMDD
+        pattern_compact_dmy,  # DDMMYYYY
+        pattern_compact_short_dmy,  # DDMMYY
         # Parentheses enclosed versions
-        rf'\({pattern_ymd}\)',
-        rf'\({pattern_dmy}\)',
-        rf'\({pattern_short_ymd}\)',
-        rf'\({pattern_short_dmy}\)'
+        rf"\({pattern_ymd}\)",
+        rf"\({pattern_dmy}\)",
+        rf"\({pattern_short_ymd}\)",
+        rf"\({pattern_short_dmy}\)",
     ]
-    
+
     for pattern in patterns:
         match = re.search(pattern, filename)
         if match:
             try:
                 groups = match.groupdict()
-                
+
                 # Find the matched group names (they'll end with the format type)
-                year_key = next(k for k in groups.keys() if k.startswith('year_') and groups[k])
-                month_key = next(k for k in groups.keys() if k.startswith('month_') and groups[k])
-                day_key = next(k for k in groups.keys() if k.startswith('day_') and groups[k])
-                
+                year_key = next(
+                    k for k in groups.keys() if k.startswith("year_") and groups[k]
+                )
+                month_key = next(
+                    k for k in groups.keys() if k.startswith("month_") and groups[k]
+                )
+                day_key = next(
+                    k for k in groups.keys() if k.startswith("day_") and groups[k]
+                )
+
                 year = groups[year_key]
                 month = int(groups[month_key])
                 day = int(groups[day_key])
-                
+
                 # Handle 2-digit years
                 if len(year) == 2:
-                    year = '20' + year if int(year) < 50 else '19' + year
-                
+                    year = "20" + year if int(year) < 50 else "19" + year
+
                 return datetime(int(year), month, day)
             except (ValueError, IndexError, StopIteration):
                 continue
-    
+
     return None
+
 
 def normalize_filename(filename: FilePath) -> NormalizedWords:
     """
     Normalize a filename by splitting into words based on non-alphanumeric characters.
-    
+
     This function converts the filename to lowercase and splits it into individual
     words, removing common separators and empty strings.
-    
+
     Args:
         filename: Path-like object representing the file
-        
+
     Returns:
         Set[str]: Set of normalized words from the filename
-        
+
     Raises:
         InvalidPathError: If the path is invalid
-        
+
     Examples:
         >>> normalize_filename(Path("The.Big.Movie-2024.mp4"))
         {'the', 'big', 'movie', '2024'}
@@ -148,28 +189,30 @@ def normalize_filename(filename: FilePath) -> NormalizedWords:
     try:
         path = Path(filename)
         base = path.stem.lower()
-        words = re.split(r'\W+', base)
+        words = re.split(r"\W+", base)
         words = [word for word in words if word]  # remove empty strings
         return set(words)
     except Exception as e:
-        raise InvalidPathError(f"Failed to normalize filename {filename}: {e}")
+        raise InvalidPathError(f'Failed to normalize filename {filename}: {e}') from e
 
-def collect_files(directory: FilePath) -> tuple[FileCollection[VideoPath], FileCollection[SubtitlePath]]:
+def collect_files(
+    directory: FilePath,
+) -> tuple[FileCollection[VideoPath], FileCollection[SubtitlePath]]:
     """
     Recursively collect video and subtitle files from a directory.
-    
+
     This function walks through the directory tree and identifies video and subtitle
     files based on their extensions. It skips macOS resource fork files.
-    
+
     Args:
         directory: Path-like object representing the directory to search
-        
+
     Returns:
         tuple[List[VideoPath], List[SubtitlePath]]: Lists of video and subtitle files
-        
+
     Raises:
         InvalidPathError: If the directory is invalid or inaccessible
-        
+
     Examples:
         >>> videos, subs = collect_files("movies/")
         >>> print(f"Found {len(videos)} videos and {len(subs)} subtitles")
@@ -191,19 +234,23 @@ def collect_files(directory: FilePath) -> tuple[FileCollection[VideoPath], FileC
             elif file_path.suffix.lower() in SUBTITLE_EXTENSIONS:
                 subtitle_files.append(cast(SubtitlePath, file_path))
 
-        logger.info("Collected %d video files and %d subtitle files.",
-                    len(video_files), len(subtitle_files))
+        logger.info(
+            "Collected %d video files and %d subtitle files.",
+            len(video_files),
+            len(subtitle_files),
+        )
         logger.debug("Video files: %s", video_files)
         logger.debug("Subtitle files: %s", subtitle_files)
-        
+
         return video_files, subtitle_files
     except Exception as e:
-        raise InvalidPathError(f"Error collecting files from {dir_path}: {e}")
+        raise InvalidPathError(f'Error collecting files from {dir_path}: {e}') from e
+
 
 def find_matches(
     video_files: FileCollection[VideoPath],
     subtitle_files: FileCollection[SubtitlePath],
-    min_similarity: float = DEFAULT_MIN_SIMILARITY
+    min_similarity: float = DEFAULT_MIN_SIMILARITY,
 ) -> MatchResult:
     """
     Find matches between video files and subtitle files.
@@ -225,11 +272,11 @@ def find_matches(
             - List of close matches with similarity scores
             - List of unmatched video files
             - List of unmatched subtitle files
-        
+
     Raises:
         ValueError: If min_similarity is not between 0 and 1
         InvalidPathError: If any file paths are invalid
-        
+
     Examples:
         >>> videos = [Path("movie1.mp4"), Path("show2.mkv")]
         >>> subs = [Path("movie1.srt"), Path("show2_eng.srt")]
@@ -241,7 +288,7 @@ def find_matches(
         raise ValueError("min_similarity must be between 0 and 1")
 
     logger.debug("Finding matches with min_similarity=%f", min_similarity)
-    
+
     # Initialize result collections with proper types
     exact_matches: list[ExactMatch] = []
     close_matches: list[CloseMatch] = []
@@ -254,22 +301,28 @@ def find_matches(
             video_stem = video_file.stem.lower()
             # Find first subtitle with matching stem (case-insensitive)
             exact_subtitle = next(
-                (subtitle_file for subtitle_file in subtitle_files
-                 if subtitle_file.stem.lower() == video_stem),
-                None
+                (
+                    subtitle_file
+                    for subtitle_file in subtitle_files
+                    if subtitle_file.stem.lower() == video_stem
+                ),
+                None,
             )
-            
+
             if exact_subtitle:
                 # Add to exact matches and remove from available subtitles
                 exact_matches.append((video_file, exact_subtitle))
                 subtitles_left.discard(exact_subtitle)
-                logger.debug("Found exact match: `%s` -> `%s`",
-                           str(video_file), str(exact_subtitle))
+                logger.debug(
+                    "Found exact match: `%s` -> `%s`",
+                    str(video_file),
+                    str(exact_subtitle),
+                )
             else:
                 unmatched_videos.append(video_file)
         except Exception as e:
-            logger.warning("Error processing video file `%s`: %s",
-                         str(video_file), e)
+            logger.warning(
+                "Error processing video file `%s`: %s", str(video_file), e)
             continue
 
     # Phase 2: Find close matches using word similarity and date matching
@@ -290,10 +343,10 @@ def find_matches(
         for video_file, video_set in unmatched_video_sets.items():
             best_match: Optional[SubtitlePath] = None
             best_similarity = 0.0
-            
+
             # Extract date from video filename for potential matching
             video_date = extract_date(video_file.stem)
-            
+
             # Compare with each remaining subtitle
             for subtitle_file, subtitle_set in unmatched_subtitle_sets.items():
                 # Calculate base similarity using Jaccard index
@@ -301,42 +354,42 @@ def find_matches(
                 intersection = video_set.intersection(subtitle_set)
                 union = video_set.union(subtitle_set)
                 similarity = len(intersection) / len(union) if union else 0.0
-                
+
                 # Apply date matching boost if dates are present and match
                 if video_date:
                     subtitle_date = extract_date(subtitle_file.stem)
                     if subtitle_date and video_date == subtitle_date:
                         # Boost similarity but cap at 1.0
-                        similarity = min(1.0, similarity + DATE_SIMILARITY_BOOST)
-                
+                        similarity = min(1.0, similarity +
+                                         DATE_SIMILARITY_BOOST)
+
                 # Update best match if this is the highest similarity so far
                 if similarity > best_similarity:
                     best_similarity = similarity
                     best_match = subtitle_file
-            
+
             # If we found a good enough match, add it to results
             if best_match and best_similarity >= min_similarity:
-                close_matches.append((
-                    cast(VideoPath, video_file),
-                    cast(SubtitlePath, best_match),
-                    best_similarity
-                ))
+                close_matches.append(
+                    (
+                        cast(VideoPath, video_file),
+                        cast(SubtitlePath, best_match),
+                        best_similarity,
+                    )
+                )
                 subtitles_left.discard(best_match)
                 del unmatched_subtitle_sets[best_match]
                 logger.debug(
                     "Found close match: `%s` -> `%s` (similarity: %f)",
-                    str(video_file), str(best_match), best_similarity
+                    str(video_file),
+                    str(best_match),
+                    best_similarity,
                 )
             else:
                 remaining_videos.append(cast(VideoPath, video_file))
 
-        return (
-            exact_matches,
-            close_matches,
-            remaining_videos,
-            list(subtitles_left)
-        )
+        return (exact_matches, close_matches, remaining_videos, list(subtitles_left))
 
     except Exception as e:
         logger.error("Error during close matching: %s", e)
-        raise MatcherError(f"Failed to complete matching process: {e}") 
+        raise MatcherError(f'Failed to complete matching process: {e}') from e

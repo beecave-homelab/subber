@@ -8,13 +8,15 @@ from os import PathLike
 
 # Type aliases for paths
 FilePath = Union[str, PathLike, Path]
-VideoPath = NewType('VideoPath', Path)
-SubtitlePath = NewType('SubtitlePath', Path)
+VideoPath = NewType("VideoPath", Path)
+SubtitlePath = NewType("SubtitlePath", Path)
 
 # Type aliases for matching results
 ExactMatch = Tuple[VideoPath, SubtitlePath]
 CloseMatch = Tuple[VideoPath, SubtitlePath, float]
-MatchResult = Tuple[List[ExactMatch], List[CloseMatch], List[VideoPath], List[SubtitlePath]]
+MatchResult = Tuple[
+    List[ExactMatch], List[CloseMatch], List[VideoPath], List[SubtitlePath]
+]
 
 # Type alias for normalized filename words
 NormalizedWords = Set[str]
@@ -23,5 +25,5 @@ NormalizedWords = Set[str]
 FileMapping = Dict[Path, NormalizedWords]
 
 # Generic type for file collections
-T = TypeVar('T', VideoPath, SubtitlePath)
-FileCollection = List[T] 
+T = TypeVar("T", VideoPath, SubtitlePath)
+FileCollection = List[T]

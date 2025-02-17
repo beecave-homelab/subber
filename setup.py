@@ -1,3 +1,7 @@
+"""
+Subber is a tool for matching video files with subtitle files.
+"""
+
 from setuptools import setup, find_packages
 
 # Read the content of README.md
@@ -41,4 +45,4 @@ setup(
             "subber=subber.cli.main:main",
         ],
     },
-) 
+)

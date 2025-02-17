@@ -11,7 +11,7 @@ setup(
     description="A tool for matching video files with subtitle files",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/elvee/subber",
+    url="https://github.com/beecave-homelab/subber",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -34,6 +34,7 @@ setup(
         "questionary>=2.0.0",
         "rapidfuzz>=3.0.0",
         "tabulate>=0.9.0",
+        "better-ffmpeg-progress>=1.1.0",
     ],
     entry_points={
         "console_scripts": [

@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.text import Text
 from better_ffmpeg_progress import FfmpegProcess
 
-from ..core.constants import CONSOLE_STYLES, AUDIO_CONVERSION, MESSAGES
+from subber.core.constants import CONSOLE_STYLES, AUDIO_CONVERSION, MESSAGES
 
 # Initialize Rich console and logger
 console = Console()

@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from ..core.constants import CONSOLE_STYLES
+from subber.core.constants import CONSOLE_STYLES
 
 # Initialize Rich console and logger
 console = Console()

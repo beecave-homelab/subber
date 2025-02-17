@@ -18,13 +18,13 @@ from pathlib import Path
 from typing import List, Tuple, Set, Dict, Optional, cast
 from datetime import datetime
 
-from .constants import (
+from subber.core.constants import (
     VIDEO_EXTENSIONS,
     SUBTITLE_EXTENSIONS,
     DEFAULT_MIN_SIMILARITY,
     DATE_SIMILARITY_BOOST
 )
-from .types import (
+from subber.core.types import (
     FilePath, VideoPath, SubtitlePath,
     ExactMatch, CloseMatch, MatchResult,
     NormalizedWords, FileMapping, FileCollection

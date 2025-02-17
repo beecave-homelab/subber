@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from ..core.constants import LOG_FORMAT, LOG_DATE_FORMAT, LOGS_DIR
+from subber.core.constants import LOG_FORMAT, LOG_DATE_FORMAT, LOGS_DIR
 
 def setup_logging(
     log_level: str = "INFO",

@@ -5,7 +5,7 @@ Tests for the matcher module.
 import unittest
 from pathlib import Path
 from datetime import datetime
-from ..core.matcher import (
+from subber.core.matcher import (
     extract_date,
     normalize_filename,
     collect_files,

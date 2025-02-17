@@ -11,7 +11,7 @@ from rich.table import Table
 from tabulate import tabulate
 import logging
 
-from ..core.constants import PANEL_SETTINGS, TABLE_SETTINGS, MESSAGES
+from subber.core.constants import PANEL_SETTINGS, TABLE_SETTINGS, MESSAGES
 
 # Initialize Rich console
 console = Console()

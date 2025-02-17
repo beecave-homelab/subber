@@ -42,8 +42,8 @@ Repository = "https://github.com/beecave-homelab/subber"
 [project.scripts]
 subber = "subber.cli.main:main"
 
-[tool.setuptools]
-packages = ["subber"]
+[tool.setuptools.packages.find]
+include = ["subber", "subber.*"]
 
 [tool.black]
 line-length = 88

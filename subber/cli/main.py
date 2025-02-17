@@ -15,7 +15,13 @@ from subber.utils.display import show_ascii_art, display_results
 from subber.utils.file_ops import rename_close_matches, move_unmatched_files
 from subber.utils.converter import batch_convert_to_mp3, check_ffmpeg_installed
 from subber.utils.logging import setup_logging
-from subber.core.constants import LOGS_DIR
+from subber.core.constants import (
+    LOGS_DIR, 
+    AUDIO_CONVERSION, 
+    MESSAGES, 
+    THIRD_PARTY_LOG_LEVELS,
+    CONSOLE_STYLES
+)
 
 # Initialize Rich console
 console = Console()
@@ -66,7 +72,8 @@ class RichFileFormatter(logging.Formatter):
 @click.option("-p", "--path", is_flag=True, help="Show the full path of the files in the output")
 @click.option("-m", "--move-unmatched", help="Folder to move unmatched video files into")
 @click.option("-r", "--rename", is_flag=True, help="Interactively rename close-matched subtitle files to match video names")
-@click.option("-c", "--convert", is_flag=False, flag_value="audio_files", default=None, help="Convert selected video files to MP3 format. Optionally specify output subdirectory (default: 'audio_files')")
+@click.option("-c", "--convert", is_flag=False, flag_value=AUDIO_CONVERSION['DEFAULT_OUTPUT_DIR'], default=None, 
+          help=f"Convert selected video files to MP3 format. Optionally specify output subdirectory (default: '{AUDIO_CONVERSION['DEFAULT_OUTPUT_DIR']}')")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose output with debug information")
 @click.option("--log-file", type=click.Path(), help="Specify a custom log file path (default: timestamped file in subber_logs/)")
 def main(directory, output_file, no_table, path, move_unmatched, rename, convert, verbose, log_file):
@@ -101,9 +108,8 @@ def main(directory, output_file, no_table, path, move_unmatched, rename, convert
     
     # Silence other loggers unless in verbose mode
     if not verbose:
-        logging.getLogger('questionary').setLevel(logging.WARNING)
-        logging.getLogger('rich').setLevel(logging.WARNING)
-        logging.getLogger('click').setLevel(logging.WARNING)
+        for logger_name, level in THIRD_PARTY_LOG_LEVELS.items():
+            logging.getLogger(logger_name).setLevel(getattr(logging, level))
 
     show_ascii_art()
 
@@ -121,13 +127,14 @@ def main(directory, output_file, no_table, path, move_unmatched, rename, convert
     video_files, subtitle_files = collect_files(dir_path)
 
     # 2. Match them
-    exact_matches, close_matches, unmatched_videos = find_matches(video_files, subtitle_files)
+    exact_matches, close_matches, unmatched_videos, unmatched_subtitles = find_matches(video_files, subtitle_files)
 
     # 3. Display
     display_results(
         exact_matches,
         close_matches,
         unmatched_videos,
+        unmatched_subtitles,
         directory=dir_path,
         no_table=no_table,
         show_full_path=path,
@@ -141,7 +148,7 @@ def main(directory, output_file, no_table, path, move_unmatched, rename, convert
     # 5. Optionally convert videos to MP3
     if convert is not None and unmatched_videos:
         if not check_ffmpeg_installed():
-            print(click.style("Error: ffmpeg is not installed. Please install it to use the conversion feature.", fg="red"))
+            console.print(MESSAGES["FFMPEG_NOT_INSTALLED"], style=CONSOLE_STYLES["error"])
             return
             
         convert_output_dir = dir_path / convert
@@ -149,8 +156,8 @@ def main(directory, output_file, no_table, path, move_unmatched, rename, convert
         # Convert selected video files
         converted = batch_convert_to_mp3([Path(v) for v in unmatched_videos], convert_output_dir)
         if converted > 0:
-            print(click.style(f"\nSuccessfully converted {converted} files to MP3.", fg="green"))
-            print(click.style(f"MP3 files saved in: {convert_output_dir}", fg="green"))
+            console.print(f"\nSuccessfully converted {converted} files to MP3.", style=CONSOLE_STYLES["success"])
+            console.print(f"MP3 files saved in: {convert_output_dir}", style=CONSOLE_STYLES["success"])
 
     # 6. Optionally move unmatched
     if move_unmatched:
@@ -160,5 +167,5 @@ if __name__ == "__main__":
     try:
         main()
     except (KeyboardInterrupt, EOFError):
-        console.print("\nOperation cancelled by user.", style="yellow")
+        console.print(f"\n{MESSAGES['OPERATION_CANCELLED']}", style=CONSOLE_STYLES["warning"])
         exit(0) 

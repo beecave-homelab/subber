@@ -36,8 +36,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/elvee/subber"
-Repository = "https://github.com/elvee/subber"
+Homepage = "https://github.com/beecave-homelab/subber"
+Repository = "https://github.com/beecave-homelab/subber"
 
 [project.scripts]
 subber = "subber.cli.main:main"
